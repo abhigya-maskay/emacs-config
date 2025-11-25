@@ -1,0 +1,8 @@
+# Generated/cache directories
+.local/
+eln-cache/
+straight/
+
+# State files
+history
+recentf

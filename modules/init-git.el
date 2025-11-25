@@ -1,0 +1,21 @@
+;;; init-git.el --- Git configuration -*- lexical-binding: t -*-
+
+(use-package magit
+  :commands magit-status
+  :config
+  ;; Performance: don't refresh status buffer on every file save
+  (setq magit-refresh-status-buffer nil))
+
+;; Show git diff in the gutter
+(use-package diff-hl
+  :hook
+  ((prog-mode . diff-hl-mode)
+   (text-mode . diff-hl-mode)
+   (dired-mode . diff-hl-dired-mode)
+   (magit-pre-refresh . diff-hl-magit-pre-refresh)
+   (magit-post-refresh . diff-hl-magit-post-refresh))
+  :config
+  (diff-hl-flydiff-mode))  ; Update diff on the fly
+
+(provide 'init-git)
+;;; init-git.el ends here
