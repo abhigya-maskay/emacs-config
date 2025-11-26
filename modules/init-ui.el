@@ -7,6 +7,13 @@
 ;; Highlight current line
 (global-hl-line-mode 1)
 
+;; Disable visual noise in terminal buffers (prevents flickering)
+(dolist (mode '(vterm-mode-hook term-mode-hook eshell-mode-hook))
+  (add-hook mode (lambda ()
+                   (display-line-numbers-mode -1)
+                   (hl-line-mode -1)
+                   (pulsar-mode -1))))
+
 ;; Font configuration
 (set-face-attribute 'default nil
                     :family "Monaspace Argon Frozen"
@@ -31,6 +38,8 @@
   (setq pulsar-pulse t)
   (setq pulsar-delay 0.05)
   (setq pulsar-iterations 10)
+  ;; Disable pulses that can cause terminal flickering
+  (setq pulsar-pulse-on-window-change nil)
   (pulsar-global-mode 1))
 
 ;; Better help buffers

@@ -17,7 +17,7 @@
   (claude-code-ide-terminal-backend 'vterm)
   ;; Anti-flicker settings (enabled by default, but being explicit)
   (claude-code-ide-vterm-anti-flicker t)
-  (claude-code-ide-vterm-render-delay 0.005)
+  (claude-code-ide-vterm-render-delay 0.016)
   (claude-code-ide-prevent-reflow-glitch t)
   ;; Window configuration
   (claude-code-ide-use-side-window t)
