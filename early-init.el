@@ -16,5 +16,8 @@
 ;; Disable startup screen
 (setq inhibit-startup-message t)
 
+;; Silence native compilation warnings (log to *Warnings* buffer only)
+(setq native-comp-async-report-warnings-errors 'silent)
+
 (provide 'early-init)
 ;;; early-init.el ends here

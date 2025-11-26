@@ -13,6 +13,7 @@
 (require 'init-treesitter) ; Treesitter syntax highlighting
 (require 'init-keybindings) ; Leader key bindings
 (require 'init-git)        ; Git integration
+(require 'init-claude)     ; Claude Code AI assistant
 (require 'init-lsp)        ; LSP (eglot)
 (require 'init-dired)      ; Dired and dirvish
 

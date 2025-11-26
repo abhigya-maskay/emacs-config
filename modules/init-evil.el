@@ -6,18 +6,22 @@
 
 ;; Use undo-tree for evil undo
 (use-package undo-tree
+  :demand t
   :config
   (setq undo-tree-history-directory-alist '(("." . "~/.config/emacs/undo-tree")))
-  (setq undo-tree-auto-save-history t)
-  (global-undo-tree-mode 1))
+  (setq undo-tree-auto-save-history t))
 
 (use-package evil
+  :demand t
   :init
   (setq evil-want-C-u-scroll t)
   (setq evil-want-C-i-jump nil)
   (setq evil-undo-system 'undo-tree)
   :config
   (evil-mode 1))
+
+;; Enable global-undo-tree-mode after evil is loaded
+(global-undo-tree-mode 1)
 
 (use-package evil-collection
   :after evil
