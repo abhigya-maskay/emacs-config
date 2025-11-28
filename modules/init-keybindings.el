@@ -1,5 +1,13 @@
 ;;; init-keybindings.el --- Keybinding configuration -*- lexical-binding: t -*-
 
+(defun sudo-edit-current-file ()
+  "Reopen the current file as root using TRAMP sudo."
+  (interactive)
+  (let ((file (buffer-file-name)))
+    (if file
+        (find-file (concat "/sudo::" file))
+      (message "Buffer is not visiting a file"))))
+
 (use-package general
   :config
   (general-evil-setup t)
@@ -27,7 +35,8 @@
     "ff" '(find-file :wk "find file")
     "fr" '(consult-recent-file :wk "recent files")
     "fs" '(save-buffer :wk "save file")
-    "ft" '(dirvish-side :wk "file tree")
+    "fS" '(sudo-edit-current-file :wk "sudo edit")
+    "ft" '(treemacs :wk "file tree")
 
     ;; Search
     "s" '(:ignore t :wk "search")
@@ -64,6 +73,7 @@
     "pf" '(project-find-file :wk "find file")
     "ps" '(consult-ripgrep :wk "search project")
     "pb" '(project-switch-to-buffer :wk "project buffer")
+    "pa" '(init-utils-project-remember-current :wk "add project")
     "pk" '(project-kill-buffers :wk "kill project buffers")
 
     ;; Code/LSP
@@ -87,12 +97,18 @@
 
     ;; Open
     "o" '(:ignore t :wk "open")
-    "op" '(dirvish-side :wk "project sidebar")
+    "op" '(treemacs :wk "project sidebar")
     "ou" '(undo-tree-visualize :wk "undo tree")
 
     ;; Quit
     "q" '(:ignore t :wk "quit")
-    "qq" '(save-buffers-kill-terminal :wk "quit emacs")))
+    "qq" '(save-buffers-kill-terminal :wk "quit emacs")
+
+    ;; Emacs
+    "e" '(:ignore t :wk "emacs")
+    "eq" '(save-buffers-kill-terminal :wk "quit")
+    "er" '(restart-emacs :wk "restart")
+    "eR" '(init-utils-reload-config :wk "reload config")))
 
 (provide 'init-keybindings)
 ;;; init-keybindings.el ends here

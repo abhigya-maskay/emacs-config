@@ -14,5 +14,15 @@ Returns project root if in a project, otherwise `default-directory'."
         (project-root project))
       default-directory))
 
+(defun init-utils-project-remember-current ()
+  "Add the current project to the known projects list."
+  (interactive)
+  (project-remember-project (project-current t)))
+
+(defun init-utils-reload-config ()
+  "Reload the Emacs configuration."
+  (interactive)
+  (load user-init-file))
+
 (provide 'init-utils)
 ;;; init-utils.el ends here

@@ -26,7 +26,7 @@ During startup, GC is set to `most-positive-fixnum' in early-init.el.")
 (require 'init-terminal)   ; Terminal emulator configuration
 (require 'init-agents)     ; AI agents (Claude Code + Copilot CLI)
 (require 'init-lsp)        ; LSP (eglot)
-(require 'init-dired)      ; Dired and dirvish
+(require 'init-treemacs)   ; Treemacs file tree
 
 ;; Reset GC threshold after startup (was set high in early-init.el)
 (add-hook 'emacs-startup-hook

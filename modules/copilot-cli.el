@@ -283,6 +283,16 @@ If PROMPT is nil, read from minibuffer."
     (copilot-cli-send-prompt text)))
 
 ;;;###autoload
+(defun copilot-cli-send-escape ()
+  "Send Escape key to Copilot CLI."
+  (interactive)
+  (let* ((directory (copilot-cli--get-working-directory))
+         (process (copilot-cli--get-process directory)))
+    (if (and process (process-live-p process))
+        (process-send-string process "\e")
+      (user-error "No Copilot CLI session running"))))
+
+;;;###autoload
 (defun copilot-cli-switch-to-buffer ()
   "Switch to the Copilot CLI buffer for current project."
   (interactive)

@@ -39,6 +39,7 @@
     "as" '(agent-send-prompt :wk "send prompt")
     "aR" '(agent-send-region :wk "send region")
     "ak" '(agent-stop :wk "stop agent")
+    "ae" '(agent-send-escape :wk "send escape")
     "aS" '(agent-switch :wk "switch agent")
 
     ;; Direct access to specific agents

@@ -20,6 +20,7 @@
 (declare-function claude-code-ide-insert-at-mentioned "claude-code-ide")
 (declare-function claude-code-ide-continue "claude-code-ide")
 (declare-function claude-code-ide-resume "claude-code-ide")
+(declare-function claude-code-ide-send-escape "claude-code-ide")
 
 (declare-function copilot-cli "copilot-cli")
 (declare-function copilot-cli-toggle "copilot-cli")
@@ -28,6 +29,7 @@
 (declare-function copilot-cli-send-region "copilot-cli")
 (declare-function copilot-cli-continue "copilot-cli")
 (declare-function copilot-cli-resume "copilot-cli")
+(declare-function copilot-cli-send-escape "copilot-cli")
 
 (defgroup agent-dispatcher nil
   "Unified AI agent dispatcher."
@@ -124,6 +126,11 @@ Checks: 1) hash table, 2) dir-locals, 3) default."
 (agent-dispatcher--define agent-resume
   "Resume a specific session with the configured agent."
   claude-code-ide-resume copilot-cli-resume)
+
+;;;###autoload (autoload 'agent-send-escape "agent-dispatcher" nil t)
+(agent-dispatcher--define agent-send-escape
+  "Send Escape key to the configured agent."
+  claude-code-ide-send-escape copilot-cli-send-escape)
 
 ;;;###autoload
 (defun agent-switch ()
