@@ -1,5 +1,15 @@
 ;;; init-ui.el --- UI configuration -*- lexical-binding: t -*-
 
+;;; Configuration
+
+(defconst init-ui--default-font-family "Monaspace Argon Frozen"
+  "Default font family for the editor.")
+
+(defconst init-ui--default-font-height 140
+  "Default font height in 1/10 pt units (140 = 14pt).")
+
+;;; Display Settings
+
 ;; Line numbers - relative with absolute on current line
 (setq display-line-numbers-type 'relative)
 (global-display-line-numbers-mode 1)
@@ -7,17 +17,15 @@
 ;; Highlight current line
 (global-hl-line-mode 1)
 
-;; Disable visual noise in terminal buffers (prevents flickering)
-(dolist (mode '(vterm-mode-hook term-mode-hook eshell-mode-hook))
-  (add-hook mode (lambda ()
-                   (display-line-numbers-mode -1)
-                   (hl-line-mode -1)
-                   (pulsar-mode -1))))
+;; Auto-revert buffers when files change on disk (essential for external tools like Claude Code)
+(global-auto-revert-mode 1)
+(setq auto-revert-verbose nil)           ; Don't show messages when reverting
+(setq auto-revert-check-vc-info t)       ; Also update version control info
 
 ;; Font configuration
 (set-face-attribute 'default nil
-                    :family "Monaspace Argon Frozen"
-                    :height 140)
+                    :family init-ui--default-font-family
+                    :height init-ui--default-font-height)
 
 ;; Rainbow delimiters - colored parentheses
 (use-package rainbow-delimiters

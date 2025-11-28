@@ -36,7 +36,7 @@
 
 ;; Prompt to install missing grammars (only when treesit is available)
 (when (fboundp 'treesit-language-at)
-  (defun my/treesit-install-grammar-if-missing ()
+  (defun init-treesit--install-grammar-if-missing ()
     "Prompt to install treesitter grammar if missing for current buffer."
     (when-let* ((lang (treesit-language-at (point-min)))
                 ((not (treesit-language-available-p lang)))
@@ -44,7 +44,7 @@
                 ((y-or-n-p (format "Install treesitter grammar for %s? " lang))))
       (treesit-install-language-grammar lang)))
 
-  (add-hook 'prog-mode-hook #'my/treesit-install-grammar-if-missing))
+  (add-hook 'prog-mode-hook #'init-treesit--install-grammar-if-missing))
 
 (provide 'init-treesitter)
 ;;; init-treesitter.el ends here
