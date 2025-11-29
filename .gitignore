@@ -1,8 +1,18 @@
 # Generated/cache directories
 .local/
+.cache/
 eln-cache/
 straight/
+
+# Auto-save files
+\#*\#
+auto-save-list/
 
 # State files
 history
 recentf
+projects
+
+# Package state
+transient/
+undo-tree/
