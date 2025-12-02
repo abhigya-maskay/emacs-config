@@ -48,7 +48,18 @@
   :type 'boolean
   :group 'copilot-cli)
 
+(defcustom copilot-cli-preserve-scroll-position t
+  "Maintain terminal scroll position to prevent scrolling through history.
+When enabled, prevents the eat terminal from scanning through the entire
+buffer history when displaying large output like diffs."
+  :type 'boolean
+  :group 'copilot-cli)
+
 ;;; Internal Variables
+
+;; Eat terminal variables (defined by eat package)
+(defvar eat--synchronize-scroll-function)
+(defvar eat-terminal)
 
 (defvar copilot-cli--processes (make-hash-table :test 'equal)
   "Hash table mapping project directories to Copilot CLI processes.")
@@ -151,8 +162,19 @@ DIRECTORY defaults to current working directory."
 ;;; Process Management - Cleanup
 
 (defun copilot-cli--cleanup-on-exit (directory)
-  "Clean up Copilot CLI session for DIRECTORY."
-  (copilot-cli--remove-process directory))
+  "Clean up Copilot CLI session for DIRECTORY.
+Removes process from tracking table and kills the buffer."
+  (let* ((process (copilot-cli--get-process directory))
+         (buffer (when process (process-buffer process))))
+    ;; Remove from process table first to prevent re-entry
+    (copilot-cli--remove-process directory)
+    ;; Kill the buffer (and close its window)
+    (when (and buffer (buffer-live-p buffer))
+      (let ((window (get-buffer-window buffer t)))
+        (kill-buffer buffer)
+        ;; Delete window if it still exists and is not the only one
+        (when (and window (window-live-p window) (not (one-window-p t)))
+          (delete-window window))))))
 
 (defun copilot-cli--cleanup-all-sessions ()
   "Clean up all Copilot CLI sessions.  For use in `kill-emacs-hook'."
@@ -161,6 +183,35 @@ DIRECTORY defaults to current working directory."
            copilot-cli--processes))
 
 (add-hook 'kill-emacs-hook #'copilot-cli--cleanup-all-sessions)
+
+;;; Scroll Management
+
+(defun copilot-cli--terminal-position-keeper (window-list)
+  "Maintain stable terminal view position across window switches.
+WINDOW-LIST contains windows requiring position synchronization.
+Implements intelligent scroll management to prevent scanning through
+entire buffer history when displaying large output."
+  (dolist (win window-list)
+    (if (eq win 'buffer)
+        ;; Direct buffer point update
+        (goto-char (eat-term-display-cursor eat-terminal))
+      ;; Window-specific position management
+      (unless buffer-read-only
+        (let ((terminal-point (eat-term-display-cursor eat-terminal)))
+          ;; Update window point to match terminal state
+          (set-window-point win terminal-point)
+          ;; Apply smart positioning strategy
+          (cond
+           ;; Terminal at bottom: maintain bottom alignment for active prompts
+           ((>= terminal-point (- (point-max) 2))
+            (with-selected-window win
+              (goto-char terminal-point)
+              (recenter -1)))
+           ;; Terminal out of view: restore visibility
+           ((not (pos-visible-in-window-p terminal-point win))
+            (with-selected-window win
+              (goto-char terminal-point)
+              (recenter)))))))))
 
 ;;; Session Management - Command Builder
 
@@ -188,6 +239,10 @@ Returns the buffer."
       (unless (derived-mode-p 'eat-mode)
         (eat-mode)
         (eat-exec buffer buffer-name copilot-cli-path nil args))
+      ;; Configure scroll position preservation to prevent scanning through history
+      (when copilot-cli-preserve-scroll-position
+        (setq-local eat--synchronize-scroll-function
+                    #'copilot-cli--terminal-position-keeper))
       ;; Set up process sentinel
       (when-let ((proc (get-buffer-process buffer)))
         (set-process-sentinel proc

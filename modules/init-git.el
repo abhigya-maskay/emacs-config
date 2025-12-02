@@ -1,5 +1,11 @@
 ;;; init-git.el --- Git configuration -*- lexical-binding: t -*-
 
+;; Set emacsclient path for with-editor (GUI Emacs doesn't inherit shell PATH)
+(use-package with-editor
+  :init
+  (when (eq system-type 'darwin)
+    (setq with-editor-emacsclient-executable "/opt/homebrew/bin/emacsclient")))
+
 (use-package magit
   :commands magit-status
   :config

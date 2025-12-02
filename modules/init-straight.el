@@ -22,5 +22,11 @@
 ;; Configure use-package to use straight.el by default
 (setq straight-use-package-by-default t)
 
+;; Inherit PATH from shell (needed on macOS where GUI apps don't get shell env)
+(use-package exec-path-from-shell
+  :if (memq window-system '(mac ns x))
+  :config
+  (exec-path-from-shell-initialize))
+
 (provide 'init-straight)
 ;;; init-straight.el ends here
