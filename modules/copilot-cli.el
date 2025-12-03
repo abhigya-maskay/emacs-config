@@ -191,7 +191,8 @@ Removes process from tracking table and kills the buffer."
 WINDOW-LIST contains windows requiring position synchronization.
 Implements intelligent scroll management to prevent scanning through
 entire buffer history when displaying large output."
-  (dolist (win window-list)
+  (let ((inhibit-redisplay t))  ; Batch all updates without intermediate redraws
+    (dolist (win window-list)
     (if (eq win 'buffer)
         ;; Direct buffer point update
         (goto-char (eat-term-display-cursor eat-terminal))
@@ -203,15 +204,24 @@ entire buffer history when displaying large output."
           ;; Apply smart positioning strategy
           (cond
            ;; Terminal at bottom: maintain bottom alignment for active prompts
+           ;; Use set-window-start instead of recenter to avoid full redisplay
            ((>= terminal-point (- (point-max) 2))
-            (with-selected-window win
-              (goto-char terminal-point)
-              (recenter -1)))
+            (set-window-point win terminal-point)
+            (let ((start (with-selected-window win
+                           (save-excursion
+                             (goto-char terminal-point)
+                             (forward-line (- 1 (window-height win)))
+                             (point)))))
+              (set-window-start win (max (point-min) start) t)))
            ;; Terminal out of view: restore visibility
            ((not (pos-visible-in-window-p terminal-point win))
-            (with-selected-window win
-              (goto-char terminal-point)
-              (recenter)))))))))
+            (set-window-point win terminal-point)
+            (let ((start (with-selected-window win
+                           (save-excursion
+                             (goto-char terminal-point)
+                             (forward-line (- (/ (window-height win) 2)))
+                             (point)))))
+              (set-window-start win (max (point-min) start) t)))))))))) ; close inhibit-redisplay let
 
 ;;; Session Management - Command Builder
 

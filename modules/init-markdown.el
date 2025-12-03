@@ -31,6 +31,16 @@
   :custom
   (olivetti-body-width 88))
 
+;; Visual separation between line numbers and prose
+(defun my/markdown-line-number-setup ()
+  "Style line numbers to stand out from centered prose."
+  (face-remap-add-relative 'line-number
+                           :background (face-background 'fringe nil t))
+  (face-remap-add-relative 'line-number-current-line
+                           :background (face-background 'fringe nil t)))
+
+(add-hook 'gfm-mode-hook #'my/markdown-line-number-setup)
+
 (use-package mixed-pitch
   :hook (gfm-mode . mixed-pitch-mode)
   :custom

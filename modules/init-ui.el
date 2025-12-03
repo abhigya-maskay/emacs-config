@@ -40,6 +40,21 @@
 ;; Smooth pixel scrolling
 (pixel-scroll-precision-mode 1)
 
+;; Prevent aggressive recentering at buffer boundaries (reduces flickering)
+(setq scroll-conservatively 101)  ; Never recenter, scroll line-by-line
+(setq scroll-margin 0)
+(setq scroll-step 1)
+(setq scroll-preserve-screen-position t)  ; Keep cursor position stable during scroll
+
+;; Defer font-lock during rapid scrolling
+(setq jit-lock-defer-time 0.05)
+
+;; Fast scrolling for large output (trades precision for speed)
+(setq fast-but-imprecise-scrolling t)
+
+;; Reduce redisplay during output (helps with terminal flickering)
+(setq redisplay-skip-fontification-on-input t)
+
 ;; Pulse current line after jumps
 (use-package pulsar
   :config
