@@ -12,13 +12,11 @@
   :config
   (general-evil-setup t)
 
-  ;; Create SPC leader definer
   (general-create-definer leader-keys
     :keymaps '(normal visual emacs)
     :prefix "SPC"
     :global-prefix "C-SPC")
 
-  ;; Define leader bindings
   (leader-keys
     ;; Top-level
     "SPC" '(execute-extended-command :wk "M-x")
@@ -98,6 +96,7 @@
     ;; Open
     "o" '(:ignore t :wk "open")
     "op" '(treemacs :wk "project sidebar")
+    "ot" '(eat-bottom-panel :wk "terminal")
     "ou" '(undo-tree-visualize :wk "undo tree")
 
     ;; Quit

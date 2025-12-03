@@ -146,7 +146,6 @@ Stops current agent if running and starts the new one."
                      nil t))
          (new-agent (cdr (assoc selection choices))))
     (when (and new-agent (not (eq new-agent current)))
-      ;; Stop current agent (warn on failure but continue)
       (condition-case err
           (pcase current
             ('claude
@@ -157,9 +156,7 @@ Stops current agent if running and starts the new one."
              (copilot-cli-stop)))
         (error
          (message "Warning: Failed to stop %s: %s" current (error-message-string err))))
-      ;; Set new preference
       (agent-dispatcher--set-agent new-agent)
-      ;; Start new agent
       (pcase new-agent
         ('claude
          (require 'claude-code-ide)

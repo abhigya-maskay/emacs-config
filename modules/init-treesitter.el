@@ -1,6 +1,5 @@
 ;;; init-treesitter.el --- Treesitter configuration -*- lexical-binding: t -*-
 
-;; Auto-remap major modes to treesitter variants
 (setq major-mode-remap-alist
       '((python-mode . python-ts-mode)
         (javascript-mode . js-ts-mode)
@@ -16,7 +15,6 @@
         (yaml-mode . yaml-ts-mode)
         (bash-mode . bash-ts-mode)))
 
-;; Where to install grammars
 (setq treesit-language-source-alist
       '((python "https://github.com/tree-sitter/tree-sitter-python")
         (javascript "https://github.com/tree-sitter/tree-sitter-javascript")
@@ -34,7 +32,6 @@
         (bash "https://github.com/tree-sitter/tree-sitter-bash")
         (toml "https://github.com/tree-sitter/tree-sitter-toml")))
 
-;; Prompt to install missing grammars (only when treesit is available)
 (when (fboundp 'treesit-language-at)
   (defun init-treesit--install-grammar-if-missing ()
     "Prompt to install treesitter grammar if missing for current buffer."

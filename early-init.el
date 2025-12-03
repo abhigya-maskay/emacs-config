@@ -8,7 +8,6 @@
 (when (and (eq system-type 'darwin)
            (native-comp-available-p))
   (let* ((base "/opt/homebrew/lib/gcc/current")
-         ;; Find the directory containing libemutls_w.a (needed by libgccjit)
          (emutls-dir (car (file-expand-wildcards
                            "/opt/homebrew/Cellar/gcc/*/lib/gcc/current/gcc/aarch64-apple-darwin*/*/libemutls_w.a")))
          (gcc-runtime-dir (when emutls-dir (file-name-directory emutls-dir))))
@@ -27,7 +26,6 @@
         (vertical-scroll-bars . nil)
         (horizontal-scroll-bars . nil)))
 
-;; Disable startup screen
 (setq inhibit-startup-message t)
 
 ;; Silence native compilation warnings (log to *Warnings* buffer only)

@@ -4,7 +4,6 @@
 (setq evil-want-integration t)
 (setq evil-want-keybinding nil)
 
-;; Use undo-tree for evil undo
 (use-package undo-tree
   :demand t
   :config
@@ -40,11 +39,9 @@
   :config
   (global-evil-matchit-mode 1))
 
-;; Avy - jump to any visible text
 (use-package avy
   :config
-  (setq avy-all-windows t)  ; Jump across all windows
-  ;; Bind 's' in normal mode for quick char jump
+  (setq avy-all-windows t)
   (evil-define-key 'normal 'global (kbd "s") 'avy-goto-char-2))
 
 (provide 'init-evil)

@@ -1,6 +1,5 @@
 ;;; init-straight.el --- Bootstrap straight.el and use-package -*- lexical-binding: t -*-
 
-;; Bootstrap straight.el
 (defvar bootstrap-version)
 (let ((bootstrap-file
        (expand-file-name "straight/repos/straight.el/bootstrap.el"
@@ -16,10 +15,7 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
-;; Install use-package
 (straight-use-package 'use-package)
-
-;; Configure use-package to use straight.el by default
 (setq straight-use-package-by-default t)
 
 ;; Inherit PATH from shell (needed on macOS where GUI apps don't get shell env)
