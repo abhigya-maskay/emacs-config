@@ -3,6 +3,10 @@
 .cache/
 eln-cache/
 straight/
+tree-sitter/
+
+# Byte-compiled Elisp
+*.elc
 
 # Auto-save files
 \#*\#
