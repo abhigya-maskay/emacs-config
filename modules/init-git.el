@@ -12,7 +12,6 @@
   ;; Performance: don't refresh status buffer on every file save
   (setq magit-refresh-status-buffer nil))
 
-;; Show git diff in the gutter
 (use-package diff-hl
   :hook
   ((prog-mode . diff-hl-mode)
@@ -21,7 +20,7 @@
    (magit-pre-refresh . diff-hl-magit-pre-refresh)
    (magit-post-refresh . diff-hl-magit-post-refresh))
   :config
-  (diff-hl-flydiff-mode))  ; Update diff on the fly
+  (diff-hl-flydiff-mode))
 
 (provide 'init-git)
 ;;; init-git.el ends here

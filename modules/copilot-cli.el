@@ -166,13 +166,10 @@ DIRECTORY defaults to current working directory."
 Removes process from tracking table and kills the buffer."
   (let* ((process (copilot-cli--get-process directory))
          (buffer (when process (process-buffer process))))
-    ;; Remove from process table first to prevent re-entry
     (copilot-cli--remove-process directory)
-    ;; Kill the buffer (and close its window)
     (when (and buffer (buffer-live-p buffer))
       (let ((window (get-buffer-window buffer t)))
         (kill-buffer buffer)
-        ;; Delete window if it still exists and is not the only one
         (when (and window (window-live-p window) (not (one-window-p t)))
           (delete-window window))))))
 
@@ -191,37 +188,30 @@ Removes process from tracking table and kills the buffer."
 WINDOW-LIST contains windows requiring position synchronization.
 Implements intelligent scroll management to prevent scanning through
 entire buffer history when displaying large output."
-  (let ((inhibit-redisplay t))  ; Batch all updates without intermediate redraws
+  (let ((inhibit-redisplay t))
     (dolist (win window-list)
-    (if (eq win 'buffer)
-        ;; Direct buffer point update
-        (goto-char (eat-term-display-cursor eat-terminal))
-      ;; Window-specific position management
-      (unless buffer-read-only
-        (let ((terminal-point (eat-term-display-cursor eat-terminal)))
-          ;; Update window point to match terminal state
-          (set-window-point win terminal-point)
-          ;; Apply smart positioning strategy
-          (cond
-           ;; Terminal at bottom: maintain bottom alignment for active prompts
-           ;; Use set-window-start instead of recenter to avoid full redisplay
-           ((>= terminal-point (- (point-max) 2))
+      (if (eq win 'buffer)
+          (goto-char (eat-term-display-cursor eat-terminal))
+        (unless buffer-read-only
+          (let ((terminal-point (eat-term-display-cursor eat-terminal)))
             (set-window-point win terminal-point)
-            (let ((start (with-selected-window win
-                           (save-excursion
-                             (goto-char terminal-point)
-                             (forward-line (- 1 (window-height win)))
-                             (point)))))
-              (set-window-start win (max (point-min) start) t)))
-           ;; Terminal out of view: restore visibility
-           ((not (pos-visible-in-window-p terminal-point win))
-            (set-window-point win terminal-point)
-            (let ((start (with-selected-window win
-                           (save-excursion
-                             (goto-char terminal-point)
-                             (forward-line (- (/ (window-height win) 2)))
-                             (point)))))
-              (set-window-start win (max (point-min) start) t)))))))))) ; close inhibit-redisplay let
+            (cond
+             ((>= terminal-point (- (point-max) 2))
+              (set-window-point win terminal-point)
+              (let ((start (with-selected-window win
+                             (save-excursion
+                               (goto-char terminal-point)
+                               (forward-line (- 1 (window-height win)))
+                               (point)))))
+                (set-window-start win (max (point-min) start) t)))
+             ((not (pos-visible-in-window-p terminal-point win))
+              (set-window-point win terminal-point)
+              (let ((start (with-selected-window win
+                             (save-excursion
+                               (goto-char terminal-point)
+                               (forward-line (- (/ (window-height win) 2)))
+                               (point)))))
+                (set-window-start win (max (point-min) start) t))))))))))
 
 ;;; Session Management - Command Builder
 
@@ -249,21 +239,17 @@ Returns the buffer."
       (unless (derived-mode-p 'eat-mode)
         (eat-mode)
         (eat-exec buffer buffer-name copilot-cli-path nil args))
-      ;; Configure scroll position preservation to prevent scanning through history
       (when copilot-cli-preserve-scroll-position
         (setq-local eat--synchronize-scroll-function
                     #'copilot-cli--terminal-position-keeper))
-      ;; Set up process sentinel
       (when-let ((proc (get-buffer-process buffer)))
         (set-process-sentinel proc
           (lambda (_proc event)
             (when (string-match-p "\\(finished\\|exited\\|killed\\|terminated\\)" event)
               (copilot-cli--cleanup-on-exit directory)))))
-      ;; Set up kill-buffer-hook as backup cleanup
       (add-hook 'kill-buffer-hook
                 (lambda () (copilot-cli--cleanup-on-exit directory))
                 nil t))
-    ;; Store in process table
     (copilot-cli--set-process directory (get-buffer-process buffer))
     buffer))
 
@@ -276,10 +262,8 @@ Returns the session buffer."
   (copilot-cli--ensure-cli)
   (let* ((directory (copilot-cli--get-working-directory))
          (existing-process (copilot-cli--get-process directory)))
-    ;; Check for existing session
     (if (and existing-process (process-live-p existing-process))
         (process-buffer existing-process)
-      ;; Create new session
       (copilot-cli--create-terminal-session directory continue resume))))
 
 ;;; Interactive Commands

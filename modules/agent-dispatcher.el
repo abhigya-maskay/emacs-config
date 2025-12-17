@@ -6,21 +6,12 @@
 ;; Keywords: tools, ai
 
 ;;; Commentary:
-;; Provides unified commands that dispatch to either Claude Code or
-;; GitHub Copilot CLI based on per-project preference.
+;; Provides unified commands that dispatch to the configured AI agent.
+;; Supports GitHub Copilot CLI and Claude Native UI.
 
 ;;; Code:
 
 (require 'init-utils)
-
-(declare-function claude-code-ide "claude-code-ide")
-(declare-function claude-code-ide-toggle "claude-code-ide")
-(declare-function claude-code-ide-stop "claude-code-ide")
-(declare-function claude-code-ide-send-prompt "claude-code-ide")
-(declare-function claude-code-ide-insert-at-mentioned "claude-code-ide")
-(declare-function claude-code-ide-continue "claude-code-ide")
-(declare-function claude-code-ide-resume "claude-code-ide")
-(declare-function claude-code-ide-send-escape "claude-code-ide")
 
 (declare-function copilot-cli "copilot-cli")
 (declare-function copilot-cli-toggle "copilot-cli")
@@ -31,22 +22,31 @@
 (declare-function copilot-cli-resume "copilot-cli")
 (declare-function copilot-cli-send-escape "copilot-cli")
 
+(declare-function claude-native "claude-native")
+(declare-function claude-native-toggle "claude-native")
+(declare-function claude-native-stop "claude-native")
+(declare-function claude-native-send-prompt "claude-native")
+(declare-function claude-native-send-region "claude-native")
+(declare-function claude-native-continue "claude-native")
+(declare-function claude-native-resume "claude-native")
+(declare-function claude-native-send-escape "claude-native")
+
 (defgroup agent-dispatcher nil
   "Unified AI agent dispatcher."
   :group 'tools
   :prefix "agent-dispatcher-")
 
-(defcustom agent-dispatcher-default-agent 'claude
+(defcustom agent-dispatcher-default-agent 'copilot
   "Default agent to use when none is set for a project."
-  :type '(choice (const :tag "Claude Code" claude)
-                 (const :tag "GitHub Copilot CLI" copilot))
+  :type '(choice (const :tag "GitHub Copilot CLI" copilot)
+                 (const :tag "Claude Native UI" claude-native))
   :group 'agent-dispatcher)
 
 ;;; Internal Variables
 
 (defvar agent-dispatcher--project-agents (make-hash-table :test 'equal)
   "Hash table mapping project directories to agent preference.
-Values are symbols: `claude' or `copilot'.")
+Values are symbols: `copilot' or `claude-native'.")
 
 ;;; Agent Resolution
 
@@ -73,101 +73,94 @@ Checks: 1) hash table, 2) dir-locals, 3) default."
   (let ((dir (agent-dispatcher--get-project-dir)))
     (puthash dir agent agent-dispatcher--project-agents)))
 
+;;;###autoload
+(defun agent-dispatcher-select-agent ()
+  "Interactively select the agent for the current project."
+  (interactive)
+  (let ((agent (intern (completing-read "Select agent: "
+                                        '("copilot" "claude-native")
+                                        nil t))))
+    (agent-dispatcher--set-agent agent)
+    (message "Agent set to %s for %s"
+             agent
+             (file-name-nondirectory
+              (directory-file-name (agent-dispatcher--get-project-dir))))))
+
+;;;###autoload
+(defun agent-dispatcher-launch-copilot ()
+  "Directly launch Copilot CLI and set it as current agent."
+  (interactive)
+  (agent-dispatcher--set-agent 'copilot)
+  (require 'copilot-cli)
+  (call-interactively #'copilot-cli))
+
+;;;###autoload
+(defun agent-dispatcher-launch-claude ()
+  "Directly launch Claude Native UI and set it as current agent."
+  (interactive)
+  (agent-dispatcher--set-agent 'claude-native)
+  (require 'claude-native)
+  (call-interactively #'claude-native))
+
 ;;; Dispatch Macro
 
-(defmacro agent-dispatcher--define (name doc claude-fn copilot-fn)
-  "Define dispatch function NAME with DOC, dispatching to CLAUDE-FN or COPILOT-FN."
+(defmacro agent-dispatcher--define (name doc copilot-fn claude-native-fn)
+  "Define dispatch function NAME with DOC.
+Routes to COPILOT-FN or CLAUDE-NATIVE-FN based on configured agent."
   (declare (indent 1))
   `(defun ,name ()
      ,doc
      (interactive)
      (pcase (agent-dispatcher--get-agent)
-       ('claude
-        (require 'claude-code-ide)
-        (call-interactively #',claude-fn))
        ('copilot
         (require 'copilot-cli)
         (call-interactively #',copilot-fn))
-       (_ (user-error "Unknown agent configured")))))
+       ('claude-native
+        (require 'claude-native)
+        (call-interactively #',claude-native-fn))
+       (_ (user-error "Unknown agent: %s" (agent-dispatcher--get-agent))))))
 
 ;;; Dispatch Commands
 
 ;;;###autoload (autoload 'agent-start "agent-dispatcher" nil t)
 (agent-dispatcher--define agent-start
   "Start the configured agent for the current project."
-  claude-code-ide copilot-cli)
+  copilot-cli claude-native)
 
 ;;;###autoload (autoload 'agent-stop "agent-dispatcher" nil t)
 (agent-dispatcher--define agent-stop
   "Stop the configured agent for the current project."
-  claude-code-ide-stop copilot-cli-stop)
+  copilot-cli-stop claude-native-stop)
 
 ;;;###autoload (autoload 'agent-toggle "agent-dispatcher" nil t)
 (agent-dispatcher--define agent-toggle
   "Toggle the configured agent window for the current project."
-  claude-code-ide-toggle copilot-cli-toggle)
+  copilot-cli-toggle claude-native-toggle)
 
 ;;;###autoload (autoload 'agent-send-prompt "agent-dispatcher" nil t)
 (agent-dispatcher--define agent-send-prompt
   "Send a prompt to the configured agent."
-  claude-code-ide-send-prompt copilot-cli-send-prompt)
+  copilot-cli-send-prompt claude-native-send-prompt)
 
 ;;;###autoload (autoload 'agent-send-region "agent-dispatcher" nil t)
 (agent-dispatcher--define agent-send-region
   "Send the current region to the configured agent."
-  claude-code-ide-insert-at-mentioned copilot-cli-send-region)
+  copilot-cli-send-region claude-native-send-region)
 
 ;;;###autoload (autoload 'agent-continue "agent-dispatcher" nil t)
 (agent-dispatcher--define agent-continue
   "Continue the previous conversation with the configured agent."
-  claude-code-ide-continue copilot-cli-continue)
+  copilot-cli-continue claude-native-continue)
 
 ;;;###autoload (autoload 'agent-resume "agent-dispatcher" nil t)
 (agent-dispatcher--define agent-resume
   "Resume a specific session with the configured agent."
-  claude-code-ide-resume copilot-cli-resume)
+  copilot-cli-resume claude-native-resume)
 
 ;;;###autoload (autoload 'agent-send-escape "agent-dispatcher" nil t)
 (agent-dispatcher--define agent-send-escape
   "Send Escape key to the configured agent."
-  claude-code-ide-send-escape copilot-cli-send-escape)
-
-;;;###autoload
-(defun agent-switch ()
-  "Switch the agent for the current project.
-Stops current agent if running and starts the new one."
-  (interactive)
-  (let* ((current (agent-dispatcher--get-agent))
-         (choices '(("Claude Code" . claude)
-                    ("GitHub Copilot CLI" . copilot)))
-         (selection (completing-read
-                     (format "Switch agent (current: %s): " current)
-                     (mapcar #'car choices)
-                     nil t))
-         (new-agent (cdr (assoc selection choices))))
-    (when (and new-agent (not (eq new-agent current)))
-      ;; Stop current agent (warn on failure but continue)
-      (condition-case err
-          (pcase current
-            ('claude
-             (require 'claude-code-ide)
-             (claude-code-ide-stop))
-            ('copilot
-             (require 'copilot-cli)
-             (copilot-cli-stop)))
-        (error
-         (message "Warning: Failed to stop %s: %s" current (error-message-string err))))
-      ;; Set new preference
-      (agent-dispatcher--set-agent new-agent)
-      ;; Start new agent
-      (pcase new-agent
-        ('claude
-         (require 'claude-code-ide)
-         (claude-code-ide))
-        ('copilot
-         (require 'copilot-cli)
-         (copilot-cli)))
-      (message "Switched to %s" selection))))
+  copilot-cli-send-escape claude-native-send-escape)
 
 (provide 'agent-dispatcher)
 ;;; agent-dispatcher.el ends here
