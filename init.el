@@ -9,6 +9,7 @@ During startup, GC is set to `most-positive-fixnum' in early-init.el.")
 ;;; Module Loading
 
 (add-to-list 'load-path (expand-file-name "modules" user-emacs-directory))
+(add-to-list 'load-path (expand-file-name "modules/claude-native" user-emacs-directory))
 
 (require 'init-straight)
 (require 'init-utils)

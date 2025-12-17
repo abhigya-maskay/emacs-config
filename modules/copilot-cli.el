@@ -211,7 +211,7 @@ entire buffer history when displaying large output."
                                (goto-char terminal-point)
                                (forward-line (- (/ (window-height win) 2)))
                                (point)))))
-                (set-window-start win (max (point-min) start) t))))))))))))
+                (set-window-start win (max (point-min) start) t))))))))))
 
 ;;; Session Management - Command Builder
 

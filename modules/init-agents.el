@@ -22,18 +22,6 @@ Provides broader Unicode coverage and consistent line height."
 (with-eval-after-load 'eat
   (add-hook 'eat-mode-hook #'init-agents--setup-terminal-font))
 
-(use-package claude-code-ide
-  :straight (:host github :repo "manzaltu/claude-code-ide.el")
-  :custom
-  (claude-code-ide-terminal-backend 'eat)
-  (claude-code-ide-use-side-window t)
-  (claude-code-ide-window-side 'right)
-  (claude-code-ide-window-width 100)
-  (claude-code-ide-focus-on-open t)
-  (claude-code-ide-use-ide-diff t)
-  :config
-  (claude-code-ide-emacs-tools-setup))
-
 (require 'copilot-cli)
 (require 'agent-dispatcher)
 
@@ -50,11 +38,11 @@ Provides broader Unicode coverage and consistent line height."
     "aR" '(agent-send-region :wk "send region")
     "ak" '(agent-stop :wk "stop agent")
     "ae" '(agent-send-escape :wk "send escape")
-    "aS" '(agent-switch :wk "switch agent")
     "ay" '(eat-enter-copy-mode :wk "copy mode")
+    "aS" '(agent-dispatcher-select-agent :wk "select agent")
 
-    "aC" '(claude-code-ide :wk "claude direct")
-    "aP" '(copilot-cli :wk "copilot direct")))
+    "aP" '(agent-dispatcher-launch-copilot :wk "copilot direct")
+    "aC" '(agent-dispatcher-launch-claude :wk "claude direct")))
 
 (provide 'init-agents)
 ;;; init-agents.el ends here

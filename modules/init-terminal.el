@@ -91,9 +91,7 @@ Press `q' or `Escape' to exit without copying."
     (eat-exit-copy-mode)))
 
 (with-eval-after-load 'eat
-  (define-key eat-char-mode-map (kbd "C-S-v") #'eat-paste-from-clipboard)
-  (define-key eat-char-mode-map (kbd "C-c [") #'eat-enter-copy-mode)
-  (define-key eat-emacs-mode-map (kbd "C-c [") #'eat-enter-copy-mode))
+  (define-key eat-char-mode-map (kbd "C-S-v") #'eat-paste-from-clipboard))
 
 (with-eval-after-load 'evil
   (evil-define-key 'normal eat-mode-map

@@ -20,3 +20,6 @@ projects
 # Package state
 transient/
 undo-tree/
+
+# Node modules
+node_modules/
