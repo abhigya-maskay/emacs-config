@@ -1,8 +1,12 @@
 ;;; init-theme.el --- Theme configuration -*- lexical-binding: t -*-
 
-(use-package ef-themes
+(use-package catppuccin-theme
+  :straight t
+  :demand t
+  :custom
+  (catppuccin-flavor 'macchiato)
   :config
-  (load-theme 'ef-duo-dark t))
+  (load-theme 'catppuccin :no-confirm))
 
 (use-package mood-line
   :config
