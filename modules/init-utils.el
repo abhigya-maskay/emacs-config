@@ -1,10 +1,5 @@
 ;;; init-utils.el --- Shared utility functions -*- lexical-binding: t -*-
 
-;;; Commentary:
-;; Common utility functions shared across multiple modules.
-
-;;; Code:
-
 (require 'project)
 
 (defun init-utils-project-root ()

@@ -1,13 +1,6 @@
 ;;; claude-native-log.el --- Debug logging for Claude Native -*- lexical-binding: t -*-
 
-;;; Commentary:
-;; Provides debug logging functionality for Claude Native.
-
-;;; Code:
-
 (require 'claude-native-ui)
-
-;;; Debug Logging
 
 (defun claude-native--log (format-string &rest args)
   "Log a debug message to the Claude debug buffer.

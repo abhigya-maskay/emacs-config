@@ -1,10 +1,5 @@
 ;;; init-markdown.el --- Markdown configuration -*- lexical-binding: t -*-
 
-;;; Commentary:
-;; Rich markdown editing with GFM support, hidden markup, and variable-pitch fonts.
-
-;;; Code:
-
 (use-package markdown-mode
   :mode (("\\.md\\'" . gfm-mode)
          ("\\.markdown\\'" . gfm-mode))

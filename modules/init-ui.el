@@ -1,21 +1,16 @@
 ;;; init-ui.el --- UI configuration -*- lexical-binding: t -*-
 
-;;; Configuration
-
 (defconst init-ui--default-font-family "Monaspace Argon Frozen"
   "Default font family for the editor.")
 
 (defconst init-ui--default-font-height 140
   "Default font height in 1/10 pt units (140 = 14pt).")
 
-;;; Display Settings
-
 (setq select-enable-clipboard t)
 (setq display-line-numbers-type 'relative)
 (global-display-line-numbers-mode 1)
 (global-hl-line-mode 1)
 
-;; Auto-revert when files change on disk (for external tools like Claude Code)
 (global-auto-revert-mode 1)
 (setq auto-revert-verbose nil)
 (setq auto-revert-check-vc-info t)
@@ -34,7 +29,6 @@
 
 (pixel-scroll-precision-mode 1)
 
-;; Scroll settings to reduce flickering
 (setq scroll-conservatively 101)
 (setq scroll-margin 0)
 (setq scroll-step 1)

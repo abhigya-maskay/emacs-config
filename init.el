@@ -1,12 +1,8 @@
 ;;; init.el --- Main Emacs configuration -*- lexical-binding: t -*-
 
-;;; Configuration Constants
-
 (defconst init--gc-threshold-normal (* 16 1024 1024)
   "Normal GC threshold after startup (16MB).
 During startup, GC is set to `most-positive-fixnum' in early-init.el.")
-
-;;; Module Loading
 
 (add-to-list 'load-path (expand-file-name "modules" user-emacs-directory))
 (add-to-list 'load-path (expand-file-name "modules/claude-native" user-emacs-directory))

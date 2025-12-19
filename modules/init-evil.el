@@ -1,6 +1,5 @@
 ;;; init-evil.el --- Evil mode configuration -*- lexical-binding: t -*-
 
-;; Required for evil-collection
 (setq evil-want-integration t)
 (setq evil-want-keybinding nil)
 
@@ -19,7 +18,6 @@
   :config
   (evil-mode 1))
 
-;; Enable global-undo-tree-mode after evil is loaded
 (global-undo-tree-mode 1)
 
 (use-package evil-collection
@@ -27,13 +25,11 @@
   :config
   (evil-collection-init))
 
-;; Surround text objects (like vim-surround)
 (use-package evil-surround
   :after evil
   :config
   (global-evil-surround-mode 1))
 
-;; Jump between matching tags/brackets with %
 (use-package evil-matchit
   :after evil
   :config

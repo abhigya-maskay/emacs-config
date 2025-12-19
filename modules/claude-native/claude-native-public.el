@@ -1,10 +1,5 @@
 ;;; claude-native-public.el --- Public commands for Claude Native -*- lexical-binding: t -*-
 
-;;; Commentary:
-;; Provides the public interactive commands for Claude Native.
-
-;;; Code:
-
 (require 'claude-native-ui)
 (require 'claude-native-session)
 (require 'claude-native-window)
@@ -13,11 +8,8 @@
 (require 'claude-native-collapsible)
 (require 'claude-native-commands)
 
-;; Forward declarations
 (defvar claude-native--windows-visible)
 (declare-function claude-native--send-denial-with-message "claude-native-approval-ui")
-
-;;; Public Commands
 
 ;;;###autoload
 (defun claude-native ()
@@ -34,15 +26,12 @@ until you send a message."
   (interactive)
   (let* ((directory (claude-native--get-working-directory))
          (session (claude-native--get-or-create-session directory)))
-    ;; Clear session ID to start fresh
     (plist-put session :session-id nil)
-    ;; Kill any running turn
     (when-let ((proc (plist-get session :current-proc)))
       (when (process-live-p proc)
         (kill-process proc)))
     (plist-put session :current-proc nil)
     (plist-put session :state 'idle)
-    ;; Clear history
     (when-let ((history-buf (plist-get session :history-buf)))
       (when (buffer-live-p history-buf)
         (with-current-buffer history-buf
@@ -60,11 +49,9 @@ If no session exists, start one."
   (let* ((directory (claude-native--get-working-directory))
          (session (claude-native--get-session directory)))
     (if (and session (plist-get session :history-buf))
-        ;; Session exists, toggle windows
         (if claude-native--windows-visible
             (claude-native--hide-windows)
           (claude-native--display-windows))
-      ;; No session, start one
       (claude-native))))
 
 ;;;###autoload
@@ -75,13 +62,11 @@ Cancels any running turn and hides the Claude windows."
   (let* ((directory (claude-native--get-working-directory))
          (session (claude-native--get-session directory))
          (proc (when session (plist-get session :current-proc))))
-    ;; Cancel running turn if any
     (when (and proc (process-live-p proc))
       (kill-process proc)
       (plist-put session :current-proc nil)
       (plist-put session :state 'idle)
       (message "Claude turn cancelled"))
-    ;; Always hide windows
     (claude-native--hide-windows)))
 
 ;;;###autoload
@@ -138,24 +123,18 @@ In normal mode, spawns a new turn.  During tool approval:
          (current-proc (plist-get session :current-proc))
          (approval-stage (plist-get session :approval-stage)))
     (cond
-     ;; Stage 2: Sending denial message
      ((eq approval-stage 'deny-message)
       (claude-native--send-denial-with-message session))
-     ;; Stage 1: In approval mode, ignore RET
      ((eq approval-stage 'choosing)
       (user-error "Press y/n/a to respond to tool approval"))
-     ;; Turn already in progress
      ((and current-proc (process-live-p current-proc))
       (user-error "A turn is already in progress - wait for completion"))
-     ;; Normal input - spawn new turn
      (t
       (let ((text (claude-native--get-input-text)))
         (if (string-empty-p text)
             (user-error "Nothing to send")
-          ;; Check for slash command first
           (if (claude-native--handle-slash-command text session)
-              (claude-native--insert-prompt)  ; Reset input after command
-            ;; Ensure buffers are set up
+              (claude-native--insert-prompt)
             (unless (plist-get session :history-buf)
               (claude-native--start-session))
             (claude-native--render-user-message session text)
@@ -178,7 +157,6 @@ Starts a new session if needed."
      ((string-empty-p text)
       (user-error "Nothing to send"))
      (t
-      ;; Ensure buffers are set up
       (unless (plist-get session :history-buf)
         (claude-native--start-session))
       (claude-native--render-user-message session text)

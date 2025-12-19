@@ -1,17 +1,11 @@
 ;;; init-ediff.el --- Ediff configuration -*- lexical-binding: t -*-
 
-;;; Commentary:
-;; Consolidated ediff configuration with window management and Evil integration.
-
-;;; Code:
-
 (use-package ediff
   :straight (:type built-in)
   :custom
   (ediff-split-window-function 'split-window-horizontally)
   (ediff-window-setup-function 'ediff-setup-windows-plain)
   :config
-  ;; Window configuration save/restore around ediff sessions
   (defvar init-ediff--saved-window-config nil
     "Window configuration saved before ediff session.")
 
@@ -28,7 +22,6 @@
   (add-hook 'ediff-before-setup-hook #'init-ediff--save-window-config)
   (add-hook 'ediff-quit-hook #'init-ediff--restore-window-config)
 
-  ;; Evil-friendly navigation in ediff
   (add-hook 'ediff-keymap-setup-hook
             (lambda ()
               (define-key ediff-mode-map (kbd "j") 'ediff-next-difference)

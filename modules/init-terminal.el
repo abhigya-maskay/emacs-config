@@ -1,12 +1,5 @@
 ;;; init-terminal.el --- Terminal configuration -*- lexical-binding: t -*-
 
-;;; Commentary:
-;; Configuration for terminal emulators (eat, term, eshell) including
-;; visual settings and Evil integration.
-
-;;; Code:
-
-;; Disable recenter redisplay globally - major cause of terminal flickering
 ;; See: https://emacs.stackexchange.com/questions/2254
 (setq recenter-redisplay nil)
 
@@ -46,8 +39,6 @@
 
 (with-eval-after-load 'evil
   (evil-set-initial-state 'eat-mode 'emacs))
-
-;;; Copy/Paste
 
 (defun eat-paste-from-clipboard ()
   "Paste from kill ring/system clipboard into eat terminal."

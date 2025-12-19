@@ -1,7 +1,5 @@
 ;;; init-agents.el --- AI Agent configuration -*- lexical-binding: t -*-
 
-;;; Code:
-
 (defun init-agents--setup-spinner-fonts ()
   "Set up consistent fonts for Claude Code spinner Unicode characters.
 Prevents terminal 'dancing' from font height differences.
