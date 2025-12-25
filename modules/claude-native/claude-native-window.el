@@ -19,7 +19,7 @@
   "Non-nil when Claude windows are currently displayed.")
 
 ;;; External Dependencies
-;; Functions defined in claude-native-buffers.el
+
 (declare-function claude-native--get-history-buffer "claude-native-buffers")
 (declare-function claude-native--get-input-buffer "claude-native-buffers")
 
@@ -43,7 +43,6 @@
 Creates a side window with history buffer on top and input buffer below."
   (let* ((history-buf (claude-native--get-history-buffer))
          (input-buf (claude-native--get-input-buffer))
-         ;; Display history in slot 0 (top)
          (_history-win (display-buffer-in-side-window
                        history-buf
                        `((side . ,claude-native-window-side)
@@ -51,7 +50,6 @@ Creates a side window with history buffer on top and input buffer below."
                          (window-width . ,claude-native-window-width)
                          (dedicated . t)
                          (preserve-size . (t . nil)))))
-         ;; Display input in slot 1 (bottom)
          (input-win (display-buffer-in-side-window
                      input-buf
                      `((side . ,claude-native-window-side)
@@ -59,7 +57,6 @@ Creates a side window with history buffer on top and input buffer below."
                        (window-height . ,claude-native-input-height)
                        (dedicated . t)
                        (preserve-size . (t . t))))))
-    ;; Focus input if configured
     (when (and claude-native-focus-on-open input-win)
       (select-window input-win)
       (goto-char (point-max)))

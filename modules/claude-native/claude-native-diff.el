@@ -96,20 +96,12 @@ Returns t if a preview was successfully launched, nil otherwise."
              (proposed-content (car result))
              (error-msg (cdr result)))
         (cond
-         ;; File doesn't exist - show proposed content (new file creation)
          ((not file-exists)
-          (claude-native--log "Diff: new file: %s" file-path)
           (claude-native--show-proposed-buffer session file-path new-string "new file"))
-         ;; Edit cannot be applied (old_string not found) - likely append/create
          (error-msg
-          (claude-native--log "Diff: %s, showing proposed" error-msg)
-          ;; For "not found" case, show new-string as the proposed addition
           (claude-native--show-proposed-buffer session file-path new-string error-msg))
-         ;; old_string is empty - full file replacement or append
          ((string-empty-p old-string)
-          (claude-native--log "Diff: empty old_string, showing proposed")
           (claude-native--show-proposed-buffer session file-path proposed-content "full replacement"))
-         ;; Normal case - launch unified diff
          (t
           (claude-native--launch-unified-diff session file-path proposed-content old-string new-string))))
     (error

@@ -7,7 +7,8 @@
         treemacs-position 'left
         treemacs-show-hidden-files t
         treemacs-follow-after-init t
-        treemacs-project-follow-cleanup t)
+        treemacs-project-follow-cleanup t
+        treemacs-persist-file nil)
   (treemacs-follow-mode t)
   (treemacs-filewatch-mode t)
   (treemacs-fringe-indicator-mode 'always)

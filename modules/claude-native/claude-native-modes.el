@@ -41,25 +41,20 @@ and TAB to toggle collapse/expand of tool output at point.
 
 \\{claude-native-history-mode-map}"
   :group 'claude-native
-  ;; Markdown settings - clean prose style
   (setq-local markdown-hide-markup t)
   (setq-local markdown-hide-urls t)
   (setq-local markdown-header-scaling t)
   (setq-local markdown-fontify-code-blocks-natively t)
-  ;; Word wrapping
   (setq-local truncate-lines nil)
   (setq-local word-wrap t)
   (setq-local line-spacing 0.1)
-  ;; Enable visual line mode for proper soft wrapping
   (visual-line-mode 1)
-  ;; Enable mixed-pitch for prose (variable) + code (monospace)
   (mixed-pitch-mode 1)
-  ;; Add custom font-lock keywords for meta blocks
   (font-lock-add-keywords nil claude-native--font-lock-keywords 'append)
-  ;; Scroll settings for reliable auto-scroll to bottom
-  (setq-local scroll-conservatively 10000)  ; Never recenter, scroll minimally
-  (setq-local scroll-margin 0)              ; No scroll margin
-  (setq-local scroll-step 1)                ; Scroll one line at a time
+  ;; Prevent recentering during auto-scroll
+  (setq-local scroll-conservatively 10000)
+  (setq-local scroll-margin 0)
+  (setq-local scroll-step 1)
   (setq-local auto-window-vscroll nil))
 
 ;;; Input Mode

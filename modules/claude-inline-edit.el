@@ -124,7 +124,6 @@ Default matches Catppuccin Macchiato text."
                       'face 'claude-native-spinner-face))
     (force-mode-line-update t)))
 
-;; Register modeline segment
 (unless (member '(:eval claude-inline-edit--modeline-string) global-mode-string)
   (push '(:eval claude-inline-edit--modeline-string) global-mode-string))
 
@@ -263,27 +262,19 @@ Tries exact match first, then normalized quotes.
 Returns t if replacement was made, nil otherwise."
   (save-excursion
     (goto-char (point-min))
-    ;; Try exact match first
     (if (search-forward old-string nil t)
         (progn
           (replace-match new-string t t)
           t)
-      ;; Try with normalized quotes
-      ;; In Emacs, string-length counts characters (not bytes), so position mapping is 1:1
+      ;; Fallback: normalize curly quotes to straight quotes for matching
       (let* ((norm-old (claude-inline-edit--normalize-quotes old-string))
              (buffer-content (buffer-substring-no-properties (point-min) (point-max)))
              (norm-buffer (claude-inline-edit--normalize-quotes buffer-content)))
-        (claude-native--log "Inline edit: trying normalized match")
-        (claude-native--log "Inline edit: norm-old=%S" (if (> (length norm-old) 50)
-                                                            (concat (substring norm-old 0 50) "...")
-                                                          norm-old))
-        ;; Find position in normalized buffer
+        ;; Position maps 1:1 since Emacs counts characters, not bytes
         (when-let ((pos (string-match (regexp-quote norm-old) norm-buffer)))
-          ;; Position is same in original buffer (characters, not bytes)
           (goto-char (+ (point-min) pos))
           (delete-region (point) (+ (point) (length old-string)))
           (insert new-string)
-          (claude-native--log "Inline edit: normalized match at pos %d" pos)
           t)))))
 
 ;;; Entry Point
@@ -309,7 +300,6 @@ Works with both file-backed buffers and non-file buffers like *scratch*."
          (sel-text (when selection
                      (buffer-substring-no-properties
                       (car selection) (cdr selection))))
-         ;; For non-file buffers, create a temp file so Claude's Edit tool works
          (temp-file (unless buffer-file-name
                       (let ((ext (claude-inline-edit--mode-extension major-mode)))
                         (make-temp-file "claude-inline-" nil ext))))
@@ -333,12 +323,9 @@ Works with both file-backed buffers and non-file buffers like *scratch*."
                         :connection nil
                         :diff-buffer nil
                         :diff-window-config nil)))
-    ;; Write buffer content to temp file if needed
     (when temp-file
       (with-temp-file temp-file
-        (insert content))
-      (claude-native--log "Inline edit: created temp file %s (%d bytes)"
-                          temp-file (file-attribute-size (file-attributes temp-file))))
+        (insert content)))
     (setq claude-inline-edit--current-session session)
     (deactivate-mark)
     (claude-inline-edit--show-prompt-posframe)
@@ -368,11 +355,9 @@ Works with both file-backed buffers and non-file buffers like *scratch*."
                                   :min-width claude-inline-edit-posframe-width
                                   :min-height 1
                                   :accept-focus t))))
-      ;; Focus the posframe
       (when (framep frame)
         (select-frame-set-input-focus frame)
         (select-window (frame-selected-window frame))
-        ;; Enter insert mode if Evil is active
         (when (bound-and-true-p evil-local-mode)
           (evil-insert-state))))))
 
@@ -386,14 +371,11 @@ Works with both file-backed buffers and non-file buffers like *scratch*."
       (plist-put session :prompt prompt)
       (plist-put session :iteration (1+ (plist-get session :iteration)))
       (posframe-hide "*claude-inline-prompt*")
-      ;; Return focus to source buffer
       (let ((source-buf (plist-get session :source-buffer)))
         (if-let ((win (get-buffer-window source-buf)))
             (select-window win)
           (pop-to-buffer source-buf)))
-      ;; Show submission message
       (message "Inline edit: Sending to Claude (%s)..." claude-inline-edit-model)
-      ;; Start the edit process
       (claude-inline-edit--spawn))))
 
 (defun claude-inline-edit--cancel-input ()
@@ -438,14 +420,10 @@ Passes minimal context and lets Claude Code handle it as a regular edit."
 
 (defun claude-inline-edit--spawn ()
   "Spawn Claude CLI process for inline edit."
-  ;; Ensure approval server is running to receive tool approvals
-  (claude-native--log "Inline edit: starting approval server...")
   (claude-native--start-approval-server)
-  (claude-native--log "Inline edit: approval server started on port 9876")
   (let* ((session claude-inline-edit--current-session)
          (source-buf (plist-get session :source-buffer))
          (file-path (plist-get session :source-file))
-         ;; source-file is always a real path now (original file or temp file)
          (default-directory (file-name-directory file-path))
          (prompt (claude-inline-edit--build-prompt))
          (args (list "--model" claude-inline-edit-model
@@ -463,19 +441,15 @@ Passes minimal context and lets Claude Code handle it as a regular edit."
                 :connection-type 'pty
                 :coding 'utf-8-emacs-unix
                 :filter (lambda (proc output)
-                          (claude-native--log "Filter received: %d bytes" (length output))
                           (with-current-buffer (process-buffer proc)
                             (goto-char (point-max))
                             (insert output))
                           (claude-inline-edit--process-filter proc output))
                 :sentinel #'claude-inline-edit--process-sentinel)))
-    (claude-native--log "Inline edit: CLI process started (pid %s)" (process-id proc))
     (plist-put session :process proc)
     (plist-put session :state 'waiting)
     (plist-put session :line-buffer "")
-    ;; Start modeline spinner
     (claude-inline-edit--start-spinner)
-    ;; Set timeout
     (run-with-timer claude-inline-edit-timeout nil
       (lambda ()
         (when (and claude-inline-edit--current-session
@@ -487,17 +461,13 @@ Passes minimal context and lets Claude Code handle it as a regular edit."
 (defun claude-inline-edit--process-filter (_process output)
   "Handle streaming output from Claude CLI.
 OUTPUT is the received chunk."
-  (claude-native--log "Inline edit: received output chunk (%d bytes)" (length output))
   (let ((session claude-inline-edit--current-session))
     (when session
       (let* ((buffer (concat (plist-get session :line-buffer) output))
              (lines (split-string buffer "\n"))
-             ;; All but last are complete lines
              (complete-lines (butlast lines))
-             ;; Last may be incomplete
              (remainder (car (last lines))))
         (plist-put session :line-buffer (or remainder ""))
-        ;; Process complete JSON lines
         (dolist (line complete-lines)
           (unless (string-empty-p line)
             (claude-inline-edit--handle-json-line line)))))))
@@ -505,8 +475,6 @@ OUTPUT is the received chunk."
 (defun claude-inline-edit--process-sentinel (process event)
   "Handle Claude CLI process termination with detailed errors.
 PROCESS is the CLI process, EVENT describes what happened."
-  (claude-native--log "Inline edit: process sentinel called with event: %s" (string-trim event))
-  ;; Stop spinner first
   (claude-inline-edit--stop-spinner)
   (let ((session claude-inline-edit--current-session))
     (when (and session (eq (plist-get session :process) process))
@@ -551,28 +519,38 @@ PROCESS is the CLI process, EVENT describes what happened."
 
 (defun claude-inline-edit--handle-approval (tool-name input connection)
   "Handle approval request for inline edit.
-TOOL-NAME should be \"Edit\".
-INPUT is the hash table with file_path, old_string, new_string.
+TOOL-NAME should be \"Edit\" or \"Write\".
+INPUT is the hash table with file_path, old_string/new_string (Edit)
+or file_path/content (Write).
 CONNECTION is the TCP connection to respond on.
 
-Queues edits and shows the first/current one for approval."
+Queues edits and shows the first/current one for approval.
+Other tools (Bash, Read, etc.) are auto-denied during inline edit."
   (let ((session claude-inline-edit--current-session))
     (when session
-      ;; Stop spinner - we have a response
-      (claude-inline-edit--stop-spinner)
-      (let* ((old-string (gethash "old_string" input))
-             (new-string (gethash "new_string" input))
-             (edit (list :tool-name tool-name
-                         :file-path (gethash "file_path" input)
-                         :old-string old-string
-                         :new-string new-string
-                         :connection connection)))
-        ;; Queue this edit
-        (plist-put session :pending-edits
-                   (append (plist-get session :pending-edits) (list edit)))
-        ;; If this is the first edit, show it for approval
-        (when (= 1 (length (plist-get session :pending-edits)))
-          (claude-inline-edit--show-next-approval session))))))
+      (cond
+       ((or (equal tool-name "Edit") (equal tool-name "Write"))
+        (claude-inline-edit--stop-spinner)
+        ;; Write tool: old_string is empty, content becomes new_string
+        (let* ((is-write (equal tool-name "Write"))
+               (old-string (if is-write "" (gethash "old_string" input)))
+               (new-string (if is-write (gethash "content" input) (gethash "new_string" input)))
+               (edit (list :tool-name tool-name
+                           :file-path (gethash "file_path" input)
+                           :old-string old-string
+                           :new-string new-string
+                           :connection connection)))
+          (plist-put session :pending-edits
+                     (append (plist-get session :pending-edits) (list edit)))
+          (when (= 1 (length (plist-get session :pending-edits)))
+            (claude-inline-edit--show-next-approval session))))
+       (t
+        (claude-native--log "Inline edit: denying non-edit tool %s" tool-name)
+        (let ((response (json-encode `((behavior . "deny")
+                                       (message . "Only Edit/Write allowed during inline edit")))))
+          (when (and connection (process-live-p connection))
+            (process-send-string connection (concat response "\n"))
+            (delete-process connection))))))))
 
 (defun claude-inline-edit--show-next-approval (session)
   "Show the next pending edit for approval in SESSION.
@@ -589,18 +567,13 @@ If no edits pending, cleanup the session."
              (new-lines (length (split-string new-string "\n" t)))
              (diff (- new-lines old-lines))
              (pending-count (length pending)))
-        ;; Store current edit and connection
         (plist-put session :current-edit edit)
         (plist-put session :connection (plist-get edit :connection))
         (plist-put session :state 'approving)
-        ;; Show diff using existing infrastructure
         (claude-inline-edit--show-diff edit)
-        ;; Enable approval keybindings
         (claude-inline-edit-approval-mode 1)
-        ;; Switch to Emacs state so y/n/a/q bindings work
         (when (bound-and-true-p evil-local-mode)
           (evil-emacs-state))
-        ;; Show approval prompt with pending count
         (if (> pending-count 1)
             (message "Inline edit: Proposal (%s%d lines, %d pending) %s accept  %s reject  %s accept-all  %s quit"
                      (if (>= diff 0) "+" "") diff
@@ -620,29 +593,8 @@ If no edits pending, cleanup the session."
   (let* ((session claude-inline-edit--current-session)
          (file-path (plist-get edit :file-path))
          (old-string (plist-get edit :old-string))
-         (new-string (plist-get edit :new-string))
-         (file-content (when (file-exists-p file-path)
-                         (with-temp-buffer
-                           (insert-file-contents file-path)
-                           (buffer-string))))
-         (source-content (with-current-buffer (plist-get session :source-buffer)
-                           (buffer-string))))
-    (claude-native--log "Inline edit: file-path: %s" file-path)
-    (claude-native--log "Inline edit: file content length: %d, source buffer length: %d"
-                        (length (or file-content "")) (length source-content))
-    (claude-native--log "Inline edit: old-string (%d chars): %S"
-                        (length old-string)
-                        (if (> (length old-string) 100)
-                            (concat (substring old-string 0 100) "...")
-                          old-string))
-    (claude-native--log "Inline edit: old-string in file: %s, in source: %s"
-                        (if file-content
-                            (if (string-match-p (regexp-quote old-string) file-content) "YES" "NO")
-                          "N/A")
-                        (if (string-match-p (regexp-quote old-string) source-content) "YES" "NO"))
-    ;; Save window configuration
+         (new-string (plist-get edit :new-string)))
     (plist-put session :diff-window-config (current-window-configuration))
-    ;; Use the diff display function directly
     (claude-native--show-diff-approval session file-path old-string new-string)))
 
 ;;; Approval Commands
@@ -656,16 +608,11 @@ If no edits pending, cleanup the session."
          (edit (plist-get session :current-edit)))
     (unless edit
       (user-error "No edit pending"))
-    ;; Send approval response
     (claude-inline-edit--send-response t)
-    ;; Apply the edit
     (claude-inline-edit--apply-edit edit)
-    ;; Clean up diff display
     (claude-native--diff-cleanup session)
-    ;; Remove this edit from pending
     (plist-put session :pending-edits (cdr (plist-get session :pending-edits)))
     (plist-put session :current-edit nil)
-    ;; Show next edit or cleanup
     (let ((remaining (length (plist-get session :pending-edits))))
       (if (> remaining 0)
           (progn
@@ -684,18 +631,12 @@ If no edits pending, cleanup the session."
          (count (length pending)))
     (unless pending
       (user-error "No edits pending"))
-    ;; Clean up diff display first
     (claude-native--diff-cleanup session)
-    ;; Apply all pending edits
     (dolist (edit pending)
-      ;; Set as current for send-response
       (plist-put session :current-edit edit)
       (plist-put session :connection (plist-get edit :connection))
-      ;; Send approval
       (claude-inline-edit--send-response t)
-      ;; Apply
       (claude-inline-edit--apply-edit edit))
-    ;; Cleanup
     (plist-put session :pending-edits nil)
     (plist-put session :current-edit nil)
     (claude-inline-edit--cleanup)
@@ -710,13 +651,10 @@ The previous instruction is saved as context for Claude."
   (let* ((session claude-inline-edit--current-session)
          (prev-prompt (plist-get session :prompt))
          (pending (plist-get session :pending-edits)))
-    ;; Add previous prompt to feedback history as context
     (when prev-prompt
       (plist-put session :feedback-history
                  (cons prev-prompt (plist-get session :feedback-history))))
-    ;; Send denial response for current edit
     (claude-inline-edit--send-response nil "User rejected, will retry")
-    ;; Send denial for all remaining pending edits
     (dolist (edit (cdr pending))
       (let ((conn (plist-get edit :connection)))
         (when (and conn (process-live-p conn))
@@ -724,22 +662,16 @@ The previous instruction is saved as context for Claude."
             (concat (json-encode '((behavior . "deny")
                                    (message . "User rejected all"))) "\n"))
           (delete-process conn))))
-    ;; Kill process if running
     (when-let ((proc (plist-get session :process)))
       (when (process-live-p proc)
         (kill-process proc)))
-    ;; Clean up diff display but NOT the session
     (claude-native--diff-cleanup session)
-    ;; Disable approval mode
     (claude-inline-edit-approval-mode -1)
-    ;; Clear pending edit state
     (plist-put session :pending-edits nil)
     (plist-put session :current-edit nil)
     (plist-put session :connection nil)
     (plist-put session :process nil)
-    ;; Set state back to input
     (plist-put session :state 'input)
-    ;; Show posframe for next attempt
     (claude-inline-edit--show-prompt-posframe)
     (message "Inline edit: Rejected. Enter new instruction...")))
 
@@ -749,7 +681,6 @@ The previous instruction is saved as context for Claude."
   (when claude-inline-edit--current-session
     (let* ((session claude-inline-edit--current-session)
            (pending (plist-get session :pending-edits)))
-      ;; Send denial for all pending edits
       (dolist (edit pending)
         (let ((conn (plist-get edit :connection)))
           (when (and conn (process-live-p conn))
@@ -757,7 +688,6 @@ The previous instruction is saved as context for Claude."
               (concat (json-encode '((behavior . "deny")
                                      (message . "User cancelled"))) "\n"))
             (delete-process conn))))
-      ;; Kill process if running
       (when-let ((proc (plist-get session :process)))
         (when (process-live-p proc)
           (kill-process proc))))
@@ -770,11 +700,17 @@ ALLOW is non-nil to approve, REASON is denial message."
   (let* ((session claude-inline-edit--current-session)
          (edit (plist-get session :current-edit))
          (conn (plist-get session :connection))
+         (tool-name (plist-get edit :tool-name))
+         (is-write (equal tool-name "Write"))
          (response (if allow
-                       (json-encode `((behavior . "allow")
-                                      (updatedInput . ((file_path . ,(plist-get edit :file-path))
-                                                       (old_string . ,(plist-get edit :old-string))
-                                                       (new_string . ,(plist-get edit :new-string))))))
+                       (if is-write
+                           (json-encode `((behavior . "allow")
+                                          (updatedInput . ((file_path . ,(plist-get edit :file-path))
+                                                           (content . ,(plist-get edit :new-string))))))
+                         (json-encode `((behavior . "allow")
+                                        (updatedInput . ((file_path . ,(plist-get edit :file-path))
+                                                         (old_string . ,(plist-get edit :old-string))
+                                                         (new_string . ,(plist-get edit :new-string)))))))
                      (json-encode `((behavior . "deny")
                                     (message . ,(or reason "User rejected")))))))
     (when (and conn (process-live-p conn))
@@ -786,27 +722,21 @@ ALLOW is non-nil to approve, REASON is denial message."
 Returns t if edit was applied, nil otherwise."
   (let* ((session claude-inline-edit--current-session)
          (source-buf (plist-get session :source-buffer))
+         (tool-name (plist-get edit :tool-name))
          (old-string (plist-get edit :old-string))
          (new-string (plist-get edit :new-string)))
-    (claude-native--log "Inline edit apply: source-buf=%s old=%S new=%S"
-                        (buffer-name source-buf)
-                        (if (> (length old-string) 50)
-                            (concat (substring old-string 0 50) "...")
-                          old-string)
-                        (if (> (length new-string) 50)
-                            (concat (substring new-string 0 50) "...")
-                          new-string))
     (with-current-buffer source-buf
       (let ((inhibit-read-only t))
-        (claude-native--log "Inline edit apply: buffer (first 200 chars): %S"
-                            (buffer-substring-no-properties (point-min) (min (point-max) 200)))
-        (if (claude-inline-edit--find-and-replace old-string new-string)
+        (if (and (equal tool-name "Write") (string-empty-p old-string))
             (progn
-              (claude-native--log "Inline edit apply: replacement successful")
+              (erase-buffer)
+              (insert new-string)
               t)
-          (claude-native--log "Inline edit apply: old-string NOT FOUND (even with normalization)")
-          (message "Inline edit: Warning - could not find text to replace in buffer")
-          nil)))))
+          (if (claude-inline-edit--find-and-replace old-string new-string)
+              t
+            (claude-native--log "Inline edit: old-string not found in buffer")
+            (message "Inline edit: Warning - could not find text to replace in buffer")
+            nil))))))
 
 ;;; Cleanup
 
@@ -814,23 +744,16 @@ Returns t if edit was applied, nil otherwise."
   "Clean up the current inline edit session."
   (when claude-inline-edit--current-session
     (let ((session claude-inline-edit--current-session))
-      ;; Stop spinner if running
       (claude-inline-edit--stop-spinner)
-      ;; Kill process if running
       (when-let ((proc (plist-get session :process)))
         (when (process-live-p proc)
           (kill-process proc)))
-      ;; Delete temp file if created
       (when-let ((temp-file (plist-get session :temp-file)))
         (when (file-exists-p temp-file)
           (delete-file temp-file)))
-      ;; Hide posframe
       (posframe-hide "*claude-inline-prompt*")
-      ;; Clean up diff display
       (claude-native--diff-cleanup session)
-      ;; Disable approval mode
       (claude-inline-edit-approval-mode -1)
-      ;; Clear session
       (setq claude-inline-edit--current-session nil))))
 
 (provide 'claude-inline-edit)

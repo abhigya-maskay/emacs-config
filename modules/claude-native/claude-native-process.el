@@ -39,11 +39,8 @@ Buffers partial lines and dispatches complete JSON messages."
       ;; Append to line buffer and extract complete lines
       (let* ((buffer (concat (or (plist-get session :line-buffer) "") output))
              (parsed (claude-native--extract-json-lines buffer)))
-        ;; Store remainder for next chunk
         (plist-put session :line-buffer (cdr parsed))
-        ;; Process each complete JSON line
         (dolist (line (car parsed))
-          (claude-native--log "Processing JSON: %s" (substring line 0 (min 100 (length line))))
           (when-let ((msg (claude-native--parse-json-line line)))
             (claude-native--dispatch-message session msg)))))))
 
