@@ -19,7 +19,8 @@
 
   (leader-keys
     ;; Top-level
-    "SPC" '(execute-extended-command :wk "M-x")
+    ":" '(execute-extended-command :wk "M-x")
+    "SPC" '(claude-inline-edit :wk "inline edit")
 
     ;; Buffers
     "b" '(:ignore t :wk "buffer")

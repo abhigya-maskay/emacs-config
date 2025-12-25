@@ -20,8 +20,11 @@ Provides broader Unicode coverage and consistent line height."
 (with-eval-after-load 'eat
   (add-hook 'eat-mode-hook #'init-agents--setup-terminal-font))
 
+(use-package posframe)
+
 (require 'copilot-cli)
 (require 'agent-dispatcher)
+(require 'claude-inline-edit)
 
 (with-eval-after-load 'general
   (leader-keys

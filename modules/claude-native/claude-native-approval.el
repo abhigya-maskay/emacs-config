@@ -14,10 +14,7 @@
 (require 'cl-lib)
 (require 'json)
 (require 'claude-native-ui)
-
-;;; External Dependencies
-;; Functions defined in claude-native.el
-(declare-function claude-native--log "claude-native")
+(require 'claude-native-log)
 ;; Functions defined in claude-native-buffers.el
 (declare-function claude-native--insert-in-history "claude-native-buffers")
 
@@ -36,6 +33,10 @@
 (declare-function claude-native--show-diff-approval "claude-native-diff")
 (declare-function claude-native--show-write-diff "claude-native-diff")
 (declare-function claude-native--diff-cleanup "claude-native-diff")
+
+;; From claude-inline-edit.el
+(declare-function claude-inline-edit--handle-approval "claude-inline-edit")
+(defvar claude-inline-edit--current-session)
 
 ;;; MCP Approval Socket Server Variables
 
@@ -139,51 +140,60 @@ Queues the approval and shows it if no other approval is being displayed."
   (condition-case err
       (let* ((request (json-parse-string (string-trim output) :object-type 'hash-table))
              (tool-name (gethash "tool" request))
-             (input (gethash "input" request))
-             (directory (claude-native--get-working-directory))
-             (session (claude-native--get-or-create-session directory))
-             (approval-id (claude-native--generate-approval-id)))
-        ;; Check if tool is in always-allowed list
-        (if (claude-native--tool-allowed-p session tool-name)
-            ;; Auto-approve immediately without queueing
+             (input (gethash "input" request)))
+        ;; Check if inline edit session is active AND waiting for an approval
+        (if (and (boundp 'claude-inline-edit--current-session)
+                 claude-inline-edit--current-session
+                 (memq (plist-get claude-inline-edit--current-session :state)
+                       '(waiting approving)))
             (progn
-              (claude-native--log "Auto-approving tool %s" tool-name)
-              (claude-native--insert-in-history
-               session (format "\n[%s] (auto-approved)" tool-name) 'claude-native-tool-face)
-              (let ((response (json-encode `((behavior . "allow")
-                                             (updatedInput . ,(claude-native--hash-to-alist input))))))
-                (process-send-string proc (concat response "\n"))
-                (delete-process proc)))
-          ;; Queue the approval request
-          (let ((approval (list :id approval-id
-                                :name tool-name
-                                :input input
-                                :connection proc)))
-            (claude-native--log "Queueing approval %s for tool %s" approval-id tool-name)
-            ;; Add to front of queue (we'll process from end for FIFO)
-            (plist-put session :pending-approvals
-                       (cons approval (plist-get session :pending-approvals)))
-            ;; Cache file content for Edit tools (before file is modified by Claude)
-            ;; This ensures subsequent approvals for the same file can find their old_string
-            (when (and (equal tool-name "Edit")
-                       (gethash "file_path" input))
-              (let* ((file-path (gethash "file_path" input))
-                     (cache (or (plist-get session :file-content-cache)
-                                (make-hash-table :test 'equal))))
-                (unless (gethash file-path cache)
-                  (when (file-exists-p file-path)
-                    (puthash file-path
-                             (with-temp-buffer
-                               (insert-file-contents file-path)
-                               (buffer-string))
-                             cache)))
-                (plist-put session :file-content-cache cache)))
-            ;; Show in history
-            (claude-native--insert-in-history
-             session (format "\n[%s] awaiting approval..." tool-name) 'claude-native-tool-face)
-            ;; If no approval is currently displayed, show this one
-            (unless (plist-get session :current-approval)
-              (claude-native--show-next-approval session)))))
+              (claude-native--log "Routing approval to inline edit handler")
+              (claude-inline-edit--handle-approval tool-name input proc))
+          ;; Normal agent pane flow
+          (let* ((directory (claude-native--get-working-directory))
+                 (session (claude-native--get-or-create-session directory))
+                 (approval-id (claude-native--generate-approval-id)))
+            ;; Check if tool is in always-allowed list
+            (if (claude-native--tool-allowed-p session tool-name)
+                ;; Auto-approve immediately without queueing
+                (progn
+                  (claude-native--log "Auto-approving tool %s" tool-name)
+                  (claude-native--insert-in-history
+                   session (format "\n[%s] (auto-approved)" tool-name) 'claude-native-tool-face)
+                  (let ((response (json-encode `((behavior . "allow")
+                                                 (updatedInput . ,(claude-native--hash-to-alist input))))))
+                    (process-send-string proc (concat response "\n"))
+                    (delete-process proc)))
+              ;; Queue the approval request
+              (let ((approval (list :id approval-id
+                                    :name tool-name
+                                    :input input
+                                    :connection proc)))
+                (claude-native--log "Queueing approval %s for tool %s" approval-id tool-name)
+                ;; Add to front of queue (we'll process from end for FIFO)
+                (plist-put session :pending-approvals
+                           (cons approval (plist-get session :pending-approvals)))
+                ;; Cache file content for Edit tools (before file is modified by Claude)
+                ;; This ensures subsequent approvals for the same file can find their old_string
+                (when (and (equal tool-name "Edit")
+                           (gethash "file_path" input))
+                  (let* ((file-path (gethash "file_path" input))
+                         (cache (or (plist-get session :file-content-cache)
+                                    (make-hash-table :test 'equal))))
+                    (unless (gethash file-path cache)
+                      (when (file-exists-p file-path)
+                        (puthash file-path
+                                 (with-temp-buffer
+                                   (insert-file-contents file-path)
+                                   (buffer-string))
+                                 cache)))
+                    (plist-put session :file-content-cache cache)))
+                ;; Show in history
+                (claude-native--insert-in-history
+                 session (format "\n[%s] awaiting approval..." tool-name) 'claude-native-tool-face)
+                ;; If no approval is currently displayed, show this one
+                (unless (plist-get session :current-approval)
+                  (claude-native--show-next-approval session)))))))
     (error
      (claude-native--log "Error processing approval request: %s" (error-message-string err))
      ;; Send deny response on error

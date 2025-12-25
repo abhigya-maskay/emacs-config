@@ -9,6 +9,7 @@
 (setq select-enable-clipboard t)
 (setq display-line-numbers-type 'relative)
 (global-display-line-numbers-mode 1)
+(setq global-hl-line-modes '(not eat-mode term-mode eshell-mode))
 (global-hl-line-mode 1)
 
 (global-auto-revert-mode 1)

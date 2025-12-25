@@ -28,20 +28,50 @@
             start (match-end 0)))
     count))
 
+(defun claude-native--normalize-quotes (str)
+  "Normalize quote characters in STR for matching.
+Converts curly quotes to straight quotes."
+  (let ((result str))
+    ;; Single quotes: curly → straight
+    (setq result (string-replace "\u2018" "'" result))  ; LEFT SINGLE QUOTATION MARK
+    (setq result (string-replace "\u2019" "'" result))  ; RIGHT SINGLE QUOTATION MARK
+    (setq result (string-replace "\u201B" "'" result))  ; SINGLE HIGH-REVERSED-9
+    ;; Double quotes: curly → straight
+    (setq result (string-replace "\u201C" "\"" result)) ; LEFT DOUBLE QUOTATION MARK
+    (setq result (string-replace "\u201D" "\"" result)) ; RIGHT DOUBLE QUOTATION MARK
+    (setq result (string-replace "\u201F" "\"" result)) ; DOUBLE HIGH-REVERSED-9
+    result))
+
 (defun claude-native--apply-edit (original old-string new-string)
   "Apply Edit tool change to ORIGINAL content.
 Replaces OLD-STRING with NEW-STRING.
+Tries exact match first, then normalized quotes as fallback.
 Returns (content . error-message) cons.
 - On success: (proposed-content . nil)
 - On failure: (nil . error-message)"
-  (if (not (string-match-p (regexp-quote old-string) original))
-      (cons nil "old_string not found in file")
+  (cond
+   ;; Exact match
+   ((string-match-p (regexp-quote old-string) original)
     (let ((matches (claude-native--count-matches (regexp-quote old-string) original)))
       (if (> matches 1)
           (cons nil (format "old_string found %d times (must be unique)" matches))
         (cons (replace-regexp-in-string
                (regexp-quote old-string) new-string original t t)
-              nil)))))
+              nil))))
+   ;; Try normalized quotes
+   (t
+    (let* ((norm-old (claude-native--normalize-quotes old-string))
+           (norm-orig (claude-native--normalize-quotes original)))
+      (if (not (string-match-p (regexp-quote norm-old) norm-orig))
+          (cons nil "old_string not found in file")
+        (let ((matches (claude-native--count-matches (regexp-quote norm-old) norm-orig)))
+          (if (> matches 1)
+              (cons nil (format "old_string found %d times (must be unique)" matches))
+            ;; Find position in normalized, apply to original
+            (when-let ((pos (string-match (regexp-quote norm-old) norm-orig)))
+              (let ((before (substring original 0 pos))
+                    (after (substring original (+ pos (length old-string)))))
+                (cons (concat before new-string after) nil))))))))))
 
 ;;; Diff Display Functions
 

@@ -8,32 +8,50 @@
   :commands (eat eat-other-window)
   :custom
   (eat-kill-buffer-on-exit t)
-  (eat-minimum-latency 0.008)
-  (eat-maximum-latency 0.033)
-  (eat-term-scrollback-size nil))
+  (eat-term-name "xterm-256color")
+  (eat-minimum-latency 0.02)
+  (eat-maximum-latency 0.1)
+  (eat-term-scrollback-size nil)
+)
 
 (defun eat-bottom-panel ()
   "Open eat terminal in a small bottom panel (VS Code style)."
   (interactive)
   (let* ((buf-name "*eat*")
-         (existing-buf (get-buffer buf-name)))
-    (if (and existing-buf (get-buffer-window existing-buf))
-        ;; If terminal window exists, toggle it off
-        (delete-window (get-buffer-window existing-buf))
-      ;; Otherwise, open/create terminal in bottom panel
-      (let ((buf (or existing-buf (save-window-excursion (eat) (current-buffer)))))
-        (display-buffer buf
-                        '((display-buffer-in-side-window)
-                          (side . bottom)
-                          (slot . 0)
-                          (window-height . 0.3)
-                          (preserve-size . (nil . t))))
-        (select-window (get-buffer-window buf))))))
+         (existing-buf (get-buffer buf-name))
+         (existing-win (and existing-buf (get-buffer-window existing-buf))))
+    (cond
+     ;; If terminal window is visible, toggle it off
+     (existing-win
+      (delete-window existing-win))
+     ;; If buffer exists but not visible, show it in side window
+     (existing-buf
+      (let ((win (display-buffer existing-buf
+                                 '((display-buffer-in-side-window)
+                                   (side . bottom)
+                                   (slot . 0)
+                                   (window-height . 0.3)
+                                   (preserve-size . (nil . t))))))
+        (when win (select-window win))))
+     ;; Create new eat terminal with display rules
+     (t
+      (let ((display-buffer-alist
+             (cons '("\\*eat\\*"
+                     (display-buffer-in-side-window)
+                     (side . bottom)
+                     (slot . 0)
+                     (window-height . 0.3)
+                     (preserve-size . (nil . t)))
+                   display-buffer-alist)))
+        (eat))))))
 
 (dolist (mode '(eat-mode-hook term-mode-hook eshell-mode-hook))
   (add-hook mode (lambda ()
                    (display-line-numbers-mode -1)
+                   (setq-local global-hl-line-mode nil)
                    (hl-line-mode -1)
+                   (when (bound-and-true-p hl-line-mode)
+                     (hl-line-mode -1))
                    (when (fboundp 'pulsar-mode)
                      (pulsar-mode -1)))))
 

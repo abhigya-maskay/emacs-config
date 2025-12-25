@@ -4,7 +4,7 @@
   :straight t
   :demand t
   :custom
-  (catppuccin-flavor 'macchiato)
+  (catppuccin-flavor 'mocha)
   :config
   (load-theme 'catppuccin :no-confirm))
 
